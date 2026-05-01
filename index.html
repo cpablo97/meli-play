@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meli Play — Recomendaciones</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; background: #14110d; font-family: 'Inter', -apple-system, system-ui, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+    body { display: flex; align-items: center; justify-content: center; padding: 30px 20px; min-height: 100vh; background: radial-gradient(ellipse at top, #1f1a13 0%, #0a0908 60%, #050403 100%); }
+    .stage { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    .device-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .label { font-size: 11px; color: rgba(255,255,255,0.45); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+    button { font-family: inherit; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    /* Hide scrollbars inside the phone */
+    .device-wrap *::-webkit-scrollbar { display: none; }
+    .device-wrap * { scrollbar-width: none; -ms-overflow-style: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="atoms.jsx"></script>
+  <script type="text/babel" src="componentes/RecommendationCard.jsx"></script>
+  <script type="text/babel" src="screens-home.jsx"></script>
+  <script type="text/babel" src="screens-friends.jsx"></script>
+  <script type="text/babel" src="screens-lists.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "friendsLayout": "carousel",
+      "recVariant": "inline",
+      "avatarProminence": "medium"
+    }/*EDITMODE-END*/;
+
+    function App() {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      // navigation: stack of {screen, params}
+      const [stack, setStack] = React.useState([{ screen: 'home', params: {} }]);
+      const [tab, setTab] = React.useState('home');
+
+      const top = stack[stack.length - 1];
+
+      const nav = (screen, params = {}) => {
+        if (screen === 'back') {
+          if (stack.length > 1) setStack(stack.slice(0, -1));
+          return;
+        }
+        // Tab switches reset the stack
+        if (['home', 'friends', 'inbox', 'search', 'me'].includes(screen)) {
+          setTab(screen);
+          setStack([{ screen, params }]);
+          return;
+        }
+        setStack([...stack, { screen, params }]);
+      };
+
+      const onTab = (id) => {
+        setTab(id);
+        setStack([{ screen: id, params: {} }]);
+      };
+
+      const unread = NOTIFICATIONS.filter((n) => n.unread).length;
+
+      const renderScreen = () => {
+        switch (top.screen) {
+          case 'home':       return <HomeScreen nav={nav} tweaks={tweaks} />;
+          case 'friends':    return <FriendsTab nav={nav} tweaks={tweaks} />;
+          case 'inbox':      return <InboxScreen nav={nav} />;
+          case 'search':     return <SearchPlaceholder />;
+          case 'me':         return <MePlaceholder />;
+          case 'movie':      return <MovieScreen movieId={top.params.movieId}
+                                                 initialRecId={top.params.recId}
+                                                 nav={nav} tweaks={tweaks} />;
+          case 'list':       return <ListDetailScreen listId={top.params.listId} nav={nav} />;
+          case 'createList': return <CreateListScreen nav={nav} />;
+          case 'writeRec':   return <WriteRecScreen movieId={top.params.movieId} nav={nav} />;
+          default:           return <HomeScreen nav={nav} tweaks={tweaks} />;
+        }
+      };
+
+      // Show tab bar only on tab-level screens
+      const showTabBar = ['home', 'friends', 'inbox', 'search', 'me'].includes(top.screen);
+
+      return (
+        <div className="stage">
+          <div className="device-wrap">
+            <IOSDevice width={402} height={874} dark>
+              <div style={{ position: 'absolute', inset: 0, background: '#0d0d0d', overflow: 'hidden' }}>
+                <div style={{ height: '100%', overflowY: 'auto' }}>
+                  {renderScreen()}
+                </div>
+                {showTabBar && <TabBar active={tab} onChange={onTab} unread={unread} />}
+              </div>
+            </IOSDevice>
+            <div className="label">Meli Play · Recomendaciones</div>
+          </div>
+
+          <TweaksPanel title="Tweaks">
+            <TweakSection label="Layout" />
+            <TweakRadio label="Friends shelf" value={tweaks.friendsLayout}
+              options={[{value: 'carousel', label: 'Carrusel'}, {value: 'grid', label: 'Grid'}, {value: 'feed', label: 'Feed'}]}
+              onChange={(v) => setTweak('friendsLayout', v)} />
+            <TweakRadio label="Recomendación" value={tweaks.recVariant}
+              options={[{value: 'inline', label: 'Inline'}, {value: 'drawer', label: 'Drawer'}, {value: 'page', label: 'Página'}]}
+              onChange={(v) => setTweak('recVariant', v)} />
+            <TweakRadio label="Avatares" value={tweaks.avatarProminence}
+              options={[{value: 'subtle', label: 'Sutil'}, {value: 'medium', label: 'Medio'}, {value: 'prominent', label: 'Grande'}]}
+              onChange={(v) => setTweak('avatarProminence', v)} />
+            <TweakSection label="Saltar a flujo" />
+            <TweakButton label="Inicio" onClick={() => { setTab('home'); setStack([{ screen: 'home', params: {} }]); }} />
+            <TweakButton label="Amigos & Familia" secondary onClick={() => { setTab('friends'); setStack([{ screen: 'friends', params: {} }]); }} />
+            <TweakButton label="Crear lista" secondary onClick={() => setStack([{ screen: 'createList', params: {} }])} />
+            <TweakButton label="Película c/ recomendación" secondary onClick={() => setStack([{ screen: 'movie', params: { movieId: 'kings-speech', recId: 'r1' } }])} />
+            <TweakButton label="Escribir recomendación" secondary onClick={() => setStack([{ screen: 'writeRec', params: { movieId: 'kings-speech' } }])} />
+            <TweakButton label="Avisos" secondary onClick={() => { setTab('inbox'); setStack([{ screen: 'inbox', params: {} }]); }} />
+          </TweaksPanel>
+        </div>
+      );
+    }
+
+    function SearchPlaceholder() {
+      return (
+        <div style={{ paddingTop: TOP_INSET + 20, padding: `${TOP_INSET + 20}px 20px ${TAB_BAR_H + 20}px`, color: '#fff' }}>
+          <div style={{ fontFamily: '"Playfair Display", Georgia, serif', fontSize: 36, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 18 }}>Buscar</div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+            borderRadius: 12, background: 'rgba(255,255,255,0.06)', marginBottom: 24,
+          }}>
+            <div style={{ color: 'rgba(255,255,255,0.5)' }}>{Icon.search(18)}</div>
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Películas, series, personas...</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: 600,
+                        letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>Tendencias</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {['Drama coreano', 'Animación', 'Para llorar', 'Ganadoras Oscar', 'Series cortas', 'Ciencia ficción', 'Comedia'].map((t) => (
+              <span key={t} style={{
+                padding: '7px 13px', borderRadius: 999, background: 'rgba(255,255,255,0.06)',
+                fontSize: 13, color: 'rgba(255,255,255,0.85)',
+              }}>{t}</span>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function MePlaceholder() {
+      return (
+        <div style={{ paddingTop: TOP_INSET + 20, padding: `${TOP_INSET + 20}px 20px ${TAB_BAR_H + 20}px`, color: '#fff', textAlign: 'center' }}>
+          <div style={{
+            width: 92, height: 92, borderRadius: 46, margin: '20px auto 14px',
+            background: 'linear-gradient(135deg, #FFC940, #FF8A3D)',
+            color: '#000', fontWeight: 800, fontSize: 38,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>T</div>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>Tomás Restrepo</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginBottom: 24 }}>@tomasr</div>
+          <div style={{ display: 'flex', gap: 28, justifyContent: 'center', marginBottom: 28 }}>
+            {[
+              { n: 14, l: 'Recomendaciones' },
+              { n: 9, l: 'Amigos' },
+              { n: 3, l: 'Listas' },
+            ].map((s) => (
+              <div key={s.l}>
+                <div style={{ fontSize: 22, fontWeight: 700, fontFamily: '"Playfair Display", Georgia, serif' }}>{s.n}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
