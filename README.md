@@ -8,7 +8,7 @@ Componentes de UI para **Mercado Play**, el servicio de streaming de Mercado Lib
 
 Tarjeta de recomendaciones de amigos — aparece en la pantalla de detalle de película.
 
-**[→ Ver componente en Storybook]([https://cpablo97.github.io/meli-play/](https://cpablo97.github.io/meli-play/?path=/docs/componentes-recommendationcard--docs))**
+**[→ Ver componente en Storybook]([https://cpablo97.github.io/meli-play/](https://cpablo97.github.io/meli-play/?path=/docs/componentes-recommendationcard--docs)**
 
 ### Estados
 
